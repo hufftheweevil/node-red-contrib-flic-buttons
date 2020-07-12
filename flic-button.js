@@ -13,57 +13,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
- "use strict";
-var fliclib = require("./lib/fliclibNodeJs");
-var FlicClient = fliclib.FlicClient;
+'use strict'
+var fliclib = require('./lib/fliclibNodeJs')
+var FlicClient = fliclib.FlicClient
 
-module.exports = function(RED) {
-	function flicButton(n) {
-		RED.nodes.createNode(this,n);
+let flicClients = {}
 
-		this.host = n.host;
-		this.port = n.port;
+module.exports = function (RED) {
+  function flicButton(config) {
+    RED.nodes.createNode(this, config)
 
-		this.address = n.address;
+    function Log(...msgs) {
+      config.debug && console.log(new Date(), 'flic-button', ...msgs)
+    }
 
-    this.autodisconnecttime = n.autodisconnecttime;
+    this.host = config.host
+    this.port = config.port
 
-		var node = this;
+    this.address = config.address
 
-		var clientName = this.host + ":" + this.port;
-		var globalContext = this.context().global;
+    this.autodisconnecttime = config.autodisconnecttime
 
-		if(globalContext == null){
-			globalContext = global;
-		}
+    let clientName = this.host + ':' + this.port
 
-		if(globalContext.flicClients == null){
-			globalContext.flicClients = {};
-		}
+    this.client = flicClients[clientName]
 
-		this.client = globalContext.flicClients[clientName];
+    Log('client (' + clientName + ') from lookup: ' + this.client)
 
-		//console.log( "client (" + clientName + ") from lookup: " + this.client );
+    if (this.client == null) {
+      Log('Connecting to Flic Daemon at ' + clientName)
+      this.client = new FlicClient(this.host, 5551)
 
-		if( this.client == null )
-		{
-			console.log( "Connecting to Flic Daemon at " + this.host + ":" + this.port);
-			this.client = new FlicClient(this.host, 5551);
+      flicClients[clientName] = this.client
 
-			globalContext.flicClients[clientName] = this.client;
-		}
+      this.client.on('ready', function () {
+        Log('Connected to Flic daemon!')
+      })
 
-		this.on('close', function() {
-			if(globalContext.flicClients[clientName]){
+      this.client.on('error', function (error) {
+        Log('Connection Error: ' + error)
+      })
 
-				//console.log( "closing client" );
+      this.client.on('close', function (hadError) {
+        Log('Connection closed: hadError? ' + hadError)
+      })
+    }
 
-				globalContext.flicClients[clientName].close();
+    this.on('close', function () {
+      if (flicClients[clientName]) {
+        Log('closing client')
 
-				globalContext.flicClients[clientName] = undefined;
-			}
-		});
+        flicClients[clientName].close()
 
-	}
-	RED.nodes.registerType('Flic Button', flicButton);
-};
+        flicClients[clientName] = undefined
+      }
+    })
+  }
+  RED.nodes.registerType('Flic Button', flicButton)
+}

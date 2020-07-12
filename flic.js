@@ -13,122 +13,122 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
- "use strict";
-var fliclib = require("./lib/fliclibNodeJs");
-var FlicClient = fliclib.FlicClient;
-var FlicConnectionChannel = fliclib.FlicConnectionChannel;
-var FlicScanner = fliclib.FlicScanner;
+'use strict'
+var fliclib = require('./lib/fliclibNodeJs')
+var FlicConnectionChannel = fliclib.FlicConnectionChannel
 
-module.exports = function(RED) {
-	function flic(n) {
-		RED.nodes.createNode(this,n);
+module.exports = function (RED) {
+  function flic(config) {
+    RED.nodes.createNode(this, config)
 
-		this.topic = n.topic;
-		this.event = n.event;
+    function Log(...msgs) {
+      config.debug && console.log(new Date(), 'flic', ...msgs)
+    }
 
-		this.button = RED.nodes.getNode(n.button);
+    this.topic = config.topic
+    this.events = Object.keys(config)
+      .filter(key => key.startsWith('event') && config[key])
+      .map(key => key.slice(5))
 
-		this.address = this.button.address;
-    this.autodisconnecttime = ("autodisconnecttime" in this.button) ? this.button.autoDisconnectTime : 15;
-		var client = this.button.client;
+    this.button = RED.nodes.getNode(config.button)
 
-		var node = this;
+    let client = this.button.client
 
-		node.status({fill:"green",shape:"ring",text:"Connecting..."});
+    let node = this
 
-		function handleClick(bdAddr, clickType, wasQueued, timeDiff) {
-			//console.log(bdAddr + " " + clickType + " " + (wasQueued ? "wasQueued" : "notQueued") + " " + timeDiff + " seconds ago");
+    node.status({ fill: 'green', shape: 'ring', text: 'Connecting...' })
 
-			if( clickType !== node.event ){
-				//console.log( "Discarding clicktype: " + clickType + " for topic " + node.topic );
-				return;
-			}
+    function listenToButton() {
+      let cc = new FlicConnectionChannel(node.button.address, {
+        autoDisconnectTime: node.button.autodisconnecttime
+      })
+      client.addConnectionChannel(cc)
 
-			//console.log("emitting " + clickType + " message for topic " + node.topic );
+      Log(`CC created to button: ${node.button.address}`)
 
-			var msg = {
-				topic: node.topic||'flic' + '/' + bdAddr,
-				payload: {
-					"deviceId":bdAddr,
-					"queued":wasQueued,
-					"timeDiff":timeDiff,
-					"clickType":clickType
-				}
-			}
-			node.send(msg);
-		}
+      cc.on('buttonUpOrDown', handleEvent)
+      cc.on('buttonClickOrHold', handleEvent)
+      cc.on('buttonSingleOrDoubleClickOrHold', (clickType, ...rest) => {
+        // Must ignore ButtonHold clickTypes here, otherwise will trigger twice
+        // And cannot use 'buttonSingleOrDoubleClick' event because then holds
+        // are treated as single clicks.
+        if (clickType === 'ButtonHold') return
+        handleEvent(clickType, ...rest)
+      })
 
-		function listenToButton(bdAddr) {
+      function handleEvent(clickType, wasQueued, timeDiff) {
+        Log(
+          node.button.address,
+          clickType,
+          wasQueued ? 'wasQueued ' + timeDiff + ' seconds ago' : ''
+        )
 
-      var options = {
-          autoDisconnectTime: node.autodisconnecttime
-        };
+        if (timeDiff > 5) {
+          Log(`Discarding event ${clickType} because it was too old (${timeDiff} sec)`)
+          return
+        }
 
-			var cc = new FlicConnectionChannel(bdAddr, options);
-			client.addConnectionChannel(cc);
+        let eventIndex = node.events.indexOf(clickType)
+        if (eventIndex === -1) {
+          Log('Discarding clicktype: ' + clickType + ' for topic ' + node.topic)
+          return
+        }
 
-			var eventName;
+        Log('emitting ' + clickType + ' message for topic ' + node.topic)
 
-			switch(node.event){
+        var msg = {
+          topic: node.topic || node.button.name || node.button.address,
+          payload: {
+            address: node.button.address,
+            clickType: clickType,
+            queued: wasQueued,
+            timeDiff: timeDiff
+          }
+        }
 
-				case "ButtonDown":
-				case "ButtonUp":
-					eventName = "buttonUpOrDown";
-					break;
+        if (config.outputMode == 'individual') {
+          let msgs = []
+          msgs[eventIndex] = msg
+          node.send(msgs)
+        } else {
+          node.send(msg)
+        }
+      }
 
-				case "ButtonClick":
-					eventName = "buttonClickOrHold";
-					break;
+      cc.on('createResponse', function (error, connectionStatus) {
+        Log(`CC createResponse for ${node.button.address}: ${error}: ${connectionStatus}`)
+      })
 
-				case "ButtonSingleClick":
-				case "ButtonDoubleClick":
-				case "ButtonHold":
-					eventName = "buttonSingleOrDoubleClickOrHold";
-					break;
-			}
+      cc.on('removed', function (removedReason) {
+        Log(`CC removed for ${node.button.address}: ${removedReason}`)
+      })
 
-			//console.log("connecting to button: " + bdAddr + " with event type " + node.event + ": " + eventName );
+      cc.on('connectionStatusChanged', function (connectionStatus, disconnectReason) {
+        Log(
+          `CC connectionStatusChanged for ${node.button.address}: ${connectionStatus}: ${disconnectReason}`
+        )
+      })
+    }
 
-			cc.on(eventName, function(clickType, wasQueued, timeDiff) {
-				handleClick( bdAddr, clickType, wasQueued, timeDiff );
-			});
+    client.once('ready', function () {
+      listenToButton()
+    })
 
-			/**
-			cc.on("createResponse", function(error, connectionStatus) {
-				console.log( "createResponse for " + bdAddr + ": " + error + " : " + connectionStatus );
-			});
+    client.on('ready', function () {
+      node.status({ fill: 'green', shape: 'dot', text: 'connected' })
+    })
 
-			cc.on("removed", function(removedReason) {
-				console.log( "removed for " + bdAddr + ": " + removedReason );
-			});
+    client.on('error', function (error) {
+      node.error(error)
+    })
 
-			cc.on("connectionStatusChanged", function(connectionStatus, disconnectReason) {
-				console.log( "connectionStatusChanged for " + bdAddr + ": " + connectionStatus + " : " + disconnectReason );
-			});
-			**/
-		}
-
-		client.once("ready", function() {
-			//console.log("Connected to Flic daemon!");
-
-			node.status({fill:"green",shape:"dot",text:"connected"});
-
-			listenToButton(node.address);
-		});
-
-		client.on("error", function(error) {
-
-			//console.log("Connection Error: " + error);
-
-			node.status({fill:"red",shape:"dot",text:"Connection Error"});
-		});
-
-		client.on("close", function(hadError) {
-			//console.log("Connection closed: " + hadError);
-
-			node.status({fill:"red",shape:"dot",text:"Connection Closed"});
-		});
-
-	}
-	RED.nodes.registerType('flic', flic);
-};
+    client.on('close', function (hadError) {
+      node.status({
+        fill: 'red',
+        shape: hadError ? 'dot' : 'ring',
+        text: `Connection Closed ${hadError ? '(Error)' : ''}`
+      })
+    })
+  }
+  RED.nodes.registerType('flic', flic)
+}
