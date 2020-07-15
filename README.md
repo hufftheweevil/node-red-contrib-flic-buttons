@@ -7,6 +7,8 @@ This fork includes two major upgrades:
 - Auto-reconnect to the server. If your flicd server restarts, the node will reconnect and reattach all connection channels, without missing a beat.
 - Multiple events can be triggered from one node.
 
+See [change log](CHANGELOG.md) for full details.
+
 ## Installing Flic Daemon
 
 This node requires the [fliclib-linux-hci][4] daemon to handle the low level comunication with the buttons. You will need to install this before you start:
