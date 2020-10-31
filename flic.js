@@ -90,7 +90,7 @@ module.exports = function (RED) {
           }
         }
 
-        node.status({ fill: 'green', shape: 'dot', text: `${clickType.slice(7)} | ${now()}` })
+        node.status({ fill: 'green', shape: 'dot', text: `${clickType.slice(6)} | ${now()}` })
 
         if (config.outputMode == 'individual') {
           let msgs = []
