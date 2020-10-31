@@ -17,6 +17,10 @@
 var fliclib = require('./lib/fliclibNodeJs')
 var FlicConnectionChannel = fliclib.FlicConnectionChannel
 
+let p = n => ('' + n).padStart(2, '0')
+let now = (d = new Date()) =>
+  `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+
 module.exports = function (RED) {
   function flic(config) {
     RED.nodes.createNode(this, config)
@@ -85,6 +89,8 @@ module.exports = function (RED) {
             timeDiff: timeDiff
           }
         }
+
+        node.status({ fill: 'green', shape: 'dot', text: `${clickType.slice(7)} | ${now()}` })
 
         if (config.outputMode == 'individual') {
           let msgs = []
