@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0] - 2020-10-31
+
+### Added
+
+- Status shows last event received
+
 ## [1.0.0] - 2020-07-14
 
 ### Added
