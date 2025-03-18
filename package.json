@@ -35,6 +35,6 @@
   "dependencies": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/hufftheweevil/node-red-contrib-flic-buttons"
+    "url": "git+https://github.com/hufftheweevil/node-red-contrib-flic-buttons.git"
   }
 }
