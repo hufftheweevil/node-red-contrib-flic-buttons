@@ -25,8 +25,10 @@ module.exports = function (RED) {
   function flic(config) {
     RED.nodes.createNode(this, config)
 
+    const button = RED.nodes.getNode(config.button)
+
     function Log(...msgs) {
-      config.debug && console.log(new Date(), 'flic', ...msgs)
+      config.debug && console.log(new Date(), 'flic', `[${button.address}]`, ...msgs)
     }
 
     this.topic = config.topic
@@ -34,21 +36,58 @@ module.exports = function (RED) {
       .filter(key => key.startsWith('event') && config[key])
       .map(key => key.slice(5))
 
-    this.button = RED.nodes.getNode(config.button)
+    const { client, isReady } = RED.nodes.getNode(config.server) ?? {}
 
-    let client = this.button.client
+    if (!client) {
+      this.error('Client not set')
+      this.status(STATUS.NO_CLIENT)
+      return
+    }
 
-    let node = this
+    const listenToButton = () => {
+      this.status(STATUS.CONNECTING)
 
-    node.status({ fill: 'green', shape: 'ring', text: 'Connecting...' })
-
-    function listenToButton() {
-      let cc = new FlicConnectionChannel(node.button.address, {
-        autoDisconnectTime: node.button.autodisconnecttime
+      let cc = new FlicConnectionChannel(button.address, {
+        autoDisconnectTime: button.autodisconnecttime
       })
       client.addConnectionChannel(cc)
 
-      Log(`CC created to button: ${node.button.address}`)
+      Log(`Channel created`)
+
+      const handleEvent = (clickType, wasQueued, timeDiff) => {
+        if (timeDiff > 5) {
+          Log(`Discarding <${clickType}> because it was too old (${timeDiff} sec)`)
+          return
+        }
+
+        let eventIndex = this.events.indexOf(clickType)
+        if (eventIndex === -1) {
+          Log(`Discarding <${clickType}> because not enabled`)
+          return
+        }
+
+        Log(`Emitting <${clickType}> with topic "${this.topic}"`)
+
+        var msg = {
+          topic: this.topic || button.name || button.address,
+          payload: {
+            address: button.address,
+            clickType: clickType,
+            queued: wasQueued,
+            timeDiff: timeDiff
+          }
+        }
+
+        this.status({ fill: 'green', shape: 'dot', text: `${clickType.slice(6)} | ${now()}` })
+
+        if (config.outputMode == 'individual') {
+          let msgs = []
+          msgs[eventIndex] = msg
+          this.send(msgs)
+        } else {
+          this.send(msg)
+        }
+      }
 
       cc.on('buttonUpOrDown', handleEvent)
       cc.on('buttonClickOrHold', handleEvent)
@@ -60,81 +99,46 @@ module.exports = function (RED) {
         handleEvent(clickType, ...rest)
       })
 
-      function handleEvent(clickType, wasQueued, timeDiff) {
-        Log(
-          node.button.address,
-          clickType,
-          wasQueued ? 'wasQueued ' + timeDiff + ' seconds ago' : ''
-        )
+      this.status(STATUS.CONNECTED)
 
-        if (timeDiff > 5) {
-          Log(`Discarding event ${clickType} because it was too old (${timeDiff} sec)`)
-          return
-        }
-
-        let eventIndex = node.events.indexOf(clickType)
-        if (eventIndex === -1) {
-          Log('Discarding clicktype: ' + clickType + ' for topic ' + node.topic)
-          return
-        }
-
-        Log('emitting ' + clickType + ' message for topic ' + node.topic)
-
-        var msg = {
-          topic: node.topic || node.button.name || node.button.address,
-          payload: {
-            address: node.button.address,
-            clickType: clickType,
-            queued: wasQueued,
-            timeDiff: timeDiff
-          }
-        }
-
-        node.status({ fill: 'green', shape: 'dot', text: `${clickType.slice(6)} | ${now()}` })
-
-        if (config.outputMode == 'individual') {
-          let msgs = []
-          msgs[eventIndex] = msg
-          node.send(msgs)
-        } else {
-          node.send(msg)
-        }
-      }
-
-      cc.on('createResponse', function (error, connectionStatus) {
-        Log(`CC createResponse for ${node.button.address}: ${error}: ${connectionStatus}`)
+      cc.on('removed', removedReason => {
+        Log(`Channel removed. Reason: ${removedReason}`)
       })
 
-      cc.on('removed', function (removedReason) {
-        Log(`CC removed for ${node.button.address}: ${removedReason}`)
-      })
-
-      cc.on('connectionStatusChanged', function (connectionStatus, disconnectReason) {
-        Log(
-          `CC connectionStatusChanged for ${node.button.address}: ${connectionStatus}: ${disconnectReason}`
-        )
+      this.on('close', () => {
+        cc.removeAllListeners()
+        cc.close()
+        Log(`Channel closed`)
       })
     }
 
-    client.once('ready', function () {
+    if (isReady) {
       listenToButton()
+    } else {
+      this.status(STATUS.WAITING)
+
+      client.once('ready', listenToButton)
+    }
+
+    client.on('ready', isReconnect => {
+      if (isReconnect) this.status(STATUS.CONNECTED)
     })
 
-    client.on('ready', function () {
-      node.status({ fill: 'green', shape: 'dot', text: 'connected' })
-    })
-
-    client.on('error', function (error) {
-      node.error(error)
-    })
-
-    client.on('close', function (hadError) {
-      node.status({
+    client.on('close', hadError => {
+      this.status({
         fill: 'red',
         shape: hadError ? 'dot' : 'ring',
-        text: `Connection Closed ${hadError ? '(Error)' : ''}`
+        text: 'Connection Lost'
       })
     })
   }
+
   RED.nodes.registerType('flic', flic)
+}
+
+const STATUS = {
+  NO_CLIENT: { fill: 'red', shape: 'ring', text: 'Client not found' },
+  WAITING: { fill: 'green', shape: 'ring', text: 'Waiting for client...' },
+  CONNECTING: { fill: 'green', shape: 'ring', text: 'Connecting...' },
+  CONNECTED: { fill: 'green', shape: 'dot', text: 'Connected' }
 }

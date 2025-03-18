@@ -1,0 +1,41 @@
+<script type="text/html" data-template-name="Flic Server">
+  <div class="form-row">
+    <label for="node-config-input-host"><i class="fa fa-server"></i> Host</label>
+    <input type="text" id="node-config-input-host" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-port"><i class="fa fa-plug"></i> Port</label>
+    <input type="text" id="node-config-input-port" />
+  </div>
+  <br />
+
+  <div class="form-row">
+    <label for="node-config-input-debug"><i class="fa fa-bug"></i> <span>Debug</span></label>
+    <input type="checkbox" id="node-config-input-debug" style="width: auto; margin: 0;" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="Flic Server">
+  <p>A node to configure a connection to a Flic Server</p>
+
+  <h3>Parameters</h3>
+  <ul>
+    <li><code>Host</code> - Required. IP address or hostname of the flicd server</li>
+    <li><code>Port</code> - Required. Port to use (default 5551)</li>
+    <li><code>Debug</code> - If enabled, will output debug info to the node-red console.</li>
+  </ul>
+</script>
+
+<script type="text/javascript">
+  RED.nodes.registerType('Flic Server', {
+    category: 'config',
+    defaults: {
+      host: { value: '127.0.0.1', required: true },
+      port: { value: 5551, required: true },
+      debug: { value: false }
+    },
+    label: function () {
+      return this.host + ':' + this.port
+    }
+  })
+</script>

@@ -11,50 +11,70 @@
   limitations under the License.
 -->
 <script type="text/html" data-template-name="flic">
-
   <div class="form-row">
-      <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-      <input type="text" id="node-input-name" placeholder="Name">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
   </div>
 
   <div class="form-row">
-      <label for="node-input-button"><i class="fa fa-bookmark"></i> Button</label>
-      <input type="text" id="node-input-button" >
+    <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+    <input type="text" id="node-input-server" />
   </div>
-  <br/>
+  <div class="form-row">
+    <label for="node-input-button"><i class="fa fa-circle"></i> Button</label>
+    <input type="text" id="node-input-button" />
+  </div>
+  <br />
 
   <div class="form-row">
-      <label for="node-input-eventButtonDown"><i class="fa fa-bell"></i> Events</label>
-      <div style='width:70%; display:inline-flex; flex-direction:column'>
-        <span><input style='width:10%' type="checkbox" id="node-input-eventButtonDown">Button Down</span>
-        <span><input style='width:10%' type="checkbox" id="node-input-eventButtonUp">Button Up</span>
-        <span><input style='width:10%' type="checkbox" id="node-input-eventButtonClick">Button Click</span>
-        <span><input style='width:10%' type="checkbox" id="node-input-eventButtonSingleClick">Button Single Click</span>
-        <span><input style='width:10%' type="checkbox" id="node-input-eventButtonDoubleClick">Button Double Click</span>
-        <span><input style='width:10%' type="checkbox" id="node-input-eventButtonHold">Button Hold</span>
-      </div>
+    <label for="node-input-eventButtonDown"><i class="fa fa-bell"></i> Events</label>
+    <div style="width:70%; display:inline-flex; flex-direction:column">
+      <span
+        ><input style="width:10%" type="checkbox" id="node-input-eventButtonDown" />Button
+        Down</span
+      >
+      <span
+        ><input style="width:10%" type="checkbox" id="node-input-eventButtonUp" />Button Up</span
+      >
+      <span
+        ><input style="width:10%" type="checkbox" id="node-input-eventButtonClick" />Button
+        Click</span
+      >
+      <span
+        ><input style="width:10%" type="checkbox" id="node-input-eventButtonSingleClick" />Button
+        Single Click</span
+      >
+      <span
+        ><input style="width:10%" type="checkbox" id="node-input-eventButtonDoubleClick" />Button
+        Double Click</span
+      >
+      <span
+        ><input style="width:10%" type="checkbox" id="node-input-eventButtonHold" />Button
+        Hold</span
+      >
+    </div>
   </div>
-  <br/>
+  <br />
 
   <div class="form-row">
-      <label for="node-input-outputMode"><i class="fa fa-sign-out"></i> Output Mode</label>
-      <select id="node-input-outputMode">
-        <option value='combined'>Combined</option>
-        <option value='individual'>Individual</option>
-      </select>
+    <label for="node-input-outputMode"><i class="fa fa-sign-out"></i> Output Mode</label>
+    <select id="node-input-outputMode">
+      <option value="combined">Combined</option>
+      <option value="individual">Individual</option>
+    </select>
   </div>
 
-  <input type="hidden" id="node-input-outputs">
+  <input type="hidden" id="node-input-outputs" />
 
   <div class="form-row">
-      <label for="node-input-topic"><i class="fa fa-tasks"></i> Topic</label>
-      <input type="text" id="node-input-topic" placeholder="Topic">
+    <label for="node-input-topic"><i class="fa fa-tasks"></i> Topic</label>
+    <input type="text" id="node-input-topic" placeholder="Topic" />
   </div>
-  <br/>
+  <br />
 
   <div class="form-row">
     <label for="node-input-debug"><i class="fa fa-bug"></i> <span>Debug</span></label>
-    <input type="checkbox" id="node-input-debug" style="width: auto; margin: 0;">
+    <input type="checkbox" id="node-input-debug" style="width: auto; margin: 0;" />
   </div>
 </script>
 
@@ -63,31 +83,57 @@
 
   <h3>Parameters</h3>
   <ul>
+    <li><code>Server</code> - Required. References flic-server config nodes</li>
     <li><code>Button</code> - Required. References flic-button config nodes</li>
-    <li><code>Events</code> - At least 1 Required. Events to listen to (see below for info on each).</li>
-    <li><code>Output Mode</code> - Required. If individual is selected, each event that is turned on will output separately. The number of outputs will be adjusted accordingly.</li>
-    <li><code>Topic</code> - Optional. Topic to use on output. If blank, will use button name or address</li>
+    <li>
+      <code>Events</code> - At least 1 Required. Events to listen to (see below for info on each).
+    </li>
+    <li>
+      <code>Output Mode</code> - Required. If individual is selected, each event that is turned on
+      will output separately. The number of outputs will be adjusted accordingly.
+    </li>
+    <li>
+      <code>Topic</code> - Optional. Topic to use on output. If blank, will use button name or
+      address
+    </li>
   </ul>
 
   <h3>Events</h3>
   <ul>
-    <li><code>ButtonDown</code> - triggered as soon as the button is pressed, regardless of single, double, or hold. (Note: will trigger twice during a double click operation)</li>
-    <li><code>ButtonUp</code> - triggered as soon as the button is released, regardless of single, double, or hold. (Note: will trigger twice during a double click operation)</li>
-    <li><code>ButtonClick</code> - triggered after the button is released and was held for at most 1 second</li>
+    <li>
+      <code>ButtonDown</code> - triggered as soon as the button is pressed, regardless of single,
+      double, or hold. (Note: will trigger twice during a double click operation)
+    </li>
+    <li>
+      <code>ButtonUp</code> - triggered as soon as the button is released, regardless of single,
+      double, or hold. (Note: will trigger twice during a double click operation)
+    </li>
+    <li>
+      <code>ButtonClick</code> - triggered after the button is released and was held for at most 1
+      second
+    </li>
     <li><code>ButtonSingleClick</code> - triggered after the button is clicked once</li>
-    <li><code>ButtonDoubleClick</code> - triggered after the button is clicked twice (time between clicks is at most 0.5 seconds)</li>
-    <li><code>ButtonHold</code> - triggered immediately once the button is held for at least 1 second</li>
+    <li>
+      <code>ButtonDoubleClick</code> - triggered after the button is clicked twice (time between
+      clicks is at most 0.5 seconds)
+    </li>
+    <li>
+      <code>ButtonHold</code> - triggered immediately once the button is held for at least 1 second
+    </li>
   </ul>
 
   <h3>Output</h3>
   <ul>
     <li><code>topic</code> - As defined in parameters</li>
-    <li><code>payload</code> - At least 1 Required. Events to listen to (see below for info on each).
+    <li>
+      <code>payload</code>
       <ul>
         <li><code>address</code> - String. The MAC address of the button</li>
         <li><code>clickType</code> - String. One of the events above</li>
         <li><code>queued</code> - Boolean. If the message was queued</li>
-        <li><code>timeDiff</code> - Number. Seconds between actual event and when message was received</li>
+        <li>
+          <code>timeDiff</code> - Number. Seconds between actual event and when message was received
+        </li>
       </ul>
     </li>
   </ul>
@@ -107,6 +153,7 @@
     category: 'input',
     defaults: {
       name: { value: '' },
+      server: { value: '', type: 'Flic Server' },
       button: { value: '', type: 'Flic Button' },
       eventButtonDown: { value: false },
       eventButtonUp: { value: false },

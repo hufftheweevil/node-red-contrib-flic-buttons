@@ -14,60 +14,14 @@
  * limitations under the License.
  **/
 'use strict'
-var fliclib = require('./lib/fliclibNodeJs')
-var FlicClient = fliclib.FlicClient
-
-let flicClients = {}
 
 module.exports = function (RED) {
   function flicButton(config) {
     RED.nodes.createNode(this, config)
 
-    function Log(...msgs) {
-      config.debug && console.log(new Date(), 'flic-button', ...msgs)
-    }
-
-    this.host = config.host
-    this.port = config.port
-
     this.address = config.address
-
+    this.name = config.name
     this.autodisconnecttime = config.autodisconnecttime
-
-    let clientName = this.host + ':' + this.port
-
-    this.client = flicClients[clientName]
-
-    Log('client (' + clientName + ') from lookup: ' + this.client)
-
-    if (this.client == null) {
-      Log('Connecting to Flic Daemon at ' + clientName)
-      this.client = new FlicClient(this.host, 5551)
-
-      flicClients[clientName] = this.client
-
-      this.client.on('ready', function () {
-        Log('Connected to Flic daemon!')
-      })
-
-      this.client.on('error', function (error) {
-        Log('Connection Error: ' + error)
-      })
-
-      this.client.on('close', function (hadError) {
-        Log('Connection closed: hadError? ' + hadError)
-      })
-    }
-
-    this.on('close', function () {
-      if (flicClients[clientName]) {
-        Log('closing client')
-
-        flicClients[clientName].close()
-
-        flicClients[clientName] = undefined
-      }
-    })
   }
   RED.nodes.registerType('Flic Button', flicButton)
 }
